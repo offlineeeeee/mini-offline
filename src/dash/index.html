@@ -1,0 +1,993 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>داشبورد مدیریت پروکسی</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <script>
+    const savedTheme = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', savedTheme);
+  </script>
+  <style>
+    :root {
+      --primary: #FDC800;
+      --secondary: #432DD7;
+      --success: #16A34A;
+      --warning: #D97706;
+      --danger: #DC2626;
+      --surface: #FBFBF9;
+      --card-bg: #FFFFFF;
+      --text: #1C293C;
+      --text-muted: #64748B;
+      --border: #1C293C;
+      --input-bg: #FFFFFF;
+      --dot-color: #1C293C;
+      --radius-sm: 4px;
+      --radius-md: 8px;
+    }
+    [data-theme="dark"] {
+      --surface: #0E1015;
+      --card-bg: #181B22;
+      --text: #FBFBF9;
+      --text-muted: #94A3B8;
+      --border: #000000;
+      --input-bg: #111319;
+      --dot-color: #2D313E;
+    }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--text);
+      -webkit-tap-highlight-color: transparent;
+    }
+    body {
+      background-color: var(--surface);
+      background-image: radial-gradient(var(--dot-color) 1px, transparent 1px);
+      background-size: 24px 24px;
+      padding: 16px 12px 80px;
+      line-height: 1.5;
+    }
+    .container {
+      max-width: 960px;
+      margin: 0 auto;
+    }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      padding-bottom: 14px;
+      border-bottom: 3px solid var(--border);
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .header h1 {
+      font-size: 1.5rem;
+      font-weight: 900;
+      letter-spacing: -0.03em;
+    }
+    .header-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    /* بنر هشدار رمز پیش‌فرض */
+    .alert-banner {
+      display: none;
+      background: #FEF3C7;
+      border: 3px solid var(--border);
+      border-radius: var(--radius-md);
+      box-shadow: 4px 4px 0px var(--border);
+      padding: 16px;
+      margin-bottom: 18px;
+      color: #92400E;
+    }
+    [data-theme="dark"] .alert-banner {
+      background: #78350F;
+      color: #FEF3C7;
+      outline: 1px solid #B45309;
+    }
+    .alert-banner-content {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .alert-banner h3 {
+      font-size: 0.95rem;
+      font-weight: 800;
+      margin-bottom: 4px;
+      color: inherit;
+    }
+    .alert-banner p {
+      font-size: 0.8125rem;
+      margin: 0;
+      color: inherit;
+    }
+
+    /* نویگیشن تب دسکتاپ */
+    .dock-nav {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding-bottom: 8px;
+      margin-bottom: 20px;
+      scrollbar-width: none;
+      -webkit-overflow-scrolling: touch;
+    }
+    .dock-nav::-webkit-scrollbar { display: none; }
+    .dock-item {
+      flex-shrink: 0;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 10px 16px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8125rem;
+      font-weight: 700;
+      background: var(--card-bg);
+      border: 2px solid var(--border);
+      border-radius: var(--radius-sm);
+      box-shadow: 3px 3px 0px var(--border);
+      cursor: pointer;
+      user-select: none;
+      transition: all 0.1s ease;
+    }
+    .dock-item:hover {
+      transform: translate(-1px, -1px);
+      box-shadow: 4px 4px 0px var(--border);
+    }
+    .dock-item.active {
+      background: var(--primary);
+      color: #1C293C;
+      box-shadow: 1px 1px 0px var(--border);
+      transform: translate(2px, 2px);
+    }
+
+    /* نوبار پایین در موبایل (Bottom Navbar) */
+    @media (max-width: 768px) {
+      body {
+        padding-bottom: 90px;
+      }
+      .dock-nav {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        margin: 0;
+        padding: 8px 8px 12px;
+        background: var(--card-bg);
+        border-top: 3px solid var(--border);
+        box-shadow: 0 -4px 0px rgba(0,0,0,0.15);
+        z-index: 100;
+        display: flex;
+        justify-content: space-around;
+        gap: 6px;
+        border-radius: 0;
+      }
+      [data-theme="dark"] .dock-nav {
+        outline: 1px solid #2B3040;
+      }
+      .dock-item {
+        flex: 1;
+        flex-direction: column;
+        justify-content: center;
+        gap: 2px;
+        padding: 6px 2px;
+        font-size: 0.6875rem;
+        border: 2px solid var(--border);
+        box-shadow: 2px 2px 0px var(--border);
+        text-align: center;
+      }
+      .dock-item .icon {
+        font-size: 1.1rem;
+      }
+    }
+
+    .tab-content {
+      display: none;
+    }
+    .tab-content.active {
+      display: block;
+    }
+
+    .card {
+      background: var(--card-bg);
+      border: 3px solid var(--border);
+      border-radius: var(--radius-md);
+      box-shadow: 5px 5px 0px var(--border);
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    [data-theme="dark"] .card { outline: 1px solid #2B3040; }
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+      border-bottom: 2px dashed var(--border);
+      padding-bottom: 10px;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .card-title {
+      font-size: 1.15rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+    }
+    .badge {
+      display: inline-block;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      background: var(--primary);
+      color: #1C293C;
+      border: 2px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 3px 8px;
+      box-shadow: 2px 2px 0px var(--border);
+    }
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+    @media(max-width: 768px) {
+      .grid-2 { grid-template-columns: 1fr; }
+      .header h1 { font-size: 1.25rem; }
+    }
+    label {
+      display: block;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+    input, textarea, select {
+      width: 100%;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.875rem;
+      padding: 10px 12px;
+      background: var(--input-bg);
+      border: 2px solid var(--border);
+      border-radius: var(--radius-sm);
+      box-shadow: 2px 2px 0px var(--border);
+      outline: none;
+      margin-bottom: 14px;
+    }
+    [data-theme="dark"] input, [data-theme="dark"] textarea, [data-theme="dark"] select {
+      outline: 1px solid #2B3040;
+    }
+    textarea {
+      height: 120px;
+      resize: vertical;
+      line-height: 1.6;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 10px 16px;
+      font-size: 0.8125rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.02em;
+      border: 2px solid var(--border);
+      border-radius: var(--radius-sm);
+      box-shadow: 3px 3px 0px var(--border);
+      cursor: pointer;
+      background: var(--primary);
+      color: #1C293C;
+      transition: all 0.1s ease;
+      min-height: 42px;
+    }
+    .btn:hover {
+      transform: translate(-1px, -1px);
+      box-shadow: 4px 4px 0px var(--border);
+    }
+    .btn:active {
+      transform: translate(2px, 2px);
+      box-shadow: 1px 1px 0px var(--border);
+    }
+    .btn-secondary {
+      background: var(--card-bg);
+      color: var(--text);
+    }
+    [data-theme="dark"] .btn-secondary { outline: 1px solid #2B3040; }
+    .btn-danger {
+      background: var(--danger);
+      color: #FFFFFF;
+    }
+
+    .sub-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: var(--surface);
+      border: 2px solid var(--border);
+      border-radius: var(--radius-sm);
+      box-shadow: 2px 2px 0px var(--border);
+      padding: 12px;
+      margin-bottom: 12px;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .sub-item span {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8125rem;
+      word-break: break-all;
+    }
+
+    /* فرم واکنش‌گرای نودها */
+    .node-form-grid {
+      display: grid;
+      grid-template-columns: 2fr 2fr 1.5fr 1.5fr auto;
+      gap: 8px;
+      align-items: end;
+    }
+    @media (max-width: 768px) {
+      .node-form-grid {
+        grid-template-columns: 1fr;
+      }
+      .node-form-grid .btn { width: 100%; }
+    }
+
+    .table-container {
+      width: 100%;
+      overflow-x: auto;
+      border: 2px solid var(--border);
+      border-radius: var(--radius-sm);
+      box-shadow: 3px 3px 0px var(--border);
+      margin-top: 14px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 500px;
+    }
+    th, td {
+      padding: 10px 12px;
+      text-align: right;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.8125rem;
+    }
+    th {
+      background: var(--surface);
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 700;
+      text-transform: uppercase;
+      font-size: 0.75rem;
+    }
+
+    /* ظرف دکمه ذخیره - قرارگیری طبیعی در انتهای فرم */
+    .save-container {
+      margin-top: 20px;
+      margin-bottom: 24px;
+      display: none; /* پیش‌فرض در تب لینک‌ها مخفی است */
+    }
+    .btn-save {
+      width: 100%;
+      padding: 14px;
+      font-size: 1rem;
+      font-weight: 800;
+      background: var(--primary);
+      color: #1C293C;
+      border: 3px solid var(--border);
+      border-radius: var(--radius-sm);
+      box-shadow: 4px 4px 0px var(--border);
+      cursor: pointer;
+    }
+
+    .toast {
+      margin-bottom: 14px;
+      padding: 12px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8125rem;
+      font-weight: 700;
+      border: 2px solid var(--border);
+      border-radius: var(--radius-sm);
+      text-align: center;
+      display: none;
+      box-shadow: 2px 2px 0px var(--border);
+    }
+    .toast.success { display: block; background: #14532D; color: #BBF7D0; }
+    .toast.error { display: block; background: #7F1D1D; color: #FECACA; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div>
+        <span class="badge">SYSTEM DOCK</span>
+        <h1>پنل مدیریت سرور</h1>
+      </div>
+      <div class="header-actions">
+        <button class="btn btn-secondary" onclick="toggleTheme()" id="themeBtn">🌙 تم</button>
+        <button class="btn btn-secondary" onclick="logout()">خروج ✕</button>
+      </div>
+    </div>
+
+    <div id="toast" class="toast"></div>
+
+    <!-- ناوبری Dock (دسکتاپ: بالا / موبایل: پایین فیکس) -->
+    <div class="dock-nav" id="dockNav">
+      <div class="dock-item active" onclick="switchTab('tab-subs', this)">
+        <span class="icon">🔗</span>
+        <span>لینک‌ها</span>
+      </div>
+      <div class="dock-item" onclick="switchTab('tab-core', this)">
+        <span class="icon">⚙️</span>
+        <span>هسته</span>
+      </div>
+      <div class="dock-item" onclick="switchTab('tab-ips', this)">
+        <span class="icon">🌐</span>
+        <span>مخزن IP</span>
+      </div>
+      <div class="dock-item" onclick="switchTab('tab-nodes', this)">
+        <span class="icon">🔀</span>
+        <span>نودها</span>
+      </div>
+      <div class="dock-item" onclick="switchTab('tab-security', this)">
+        <span class="icon">🔒</span>
+        <span>امنیت</span>
+      </div>
+    </div>
+
+    <!-- تب ۱: لینک‌های اشتراک -->
+    <div id="tab-subs" class="tab-content active">
+      <!-- هشدار امنیتی تغییر رمز پیش‌فرض -->
+      <div id="defaultPassAlert" class="alert-banner">
+        <div class="alert-banner-content">
+          <div>
+            <h3>⚠️ هشدار امنیتی: رمز عبور پیش‌فرض فعال است!</h3>
+            <p>رمز عبور مدیریت در وضعیت پیش‌فرض (<code>admin123</code>) قرار دارد. جهت جلوگیری از دسترسی غیرمجاز، فوراً آن را تغییر دهید.</p>
+          </div>
+          <button class="btn btn-secondary" onclick="goToSecurityTab()">تغییر رمز عبور ➔</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">لینک‌های اتصال کاربران</span>
+          <span class="badge">LINKS</span>
+        </div>
+        <div id="subLinks">در حال دریافت لینک‌ها...</div>
+      </div>
+    </div>
+
+    <!-- تب ۲: هسته و استتار -->
+    <div id="tab-core" class="tab-content">
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">تنظیمات اصلی هسته</span>
+          <span class="badge">CORE</span>
+        </div>
+        <div class="grid-2">
+          <div>
+            <label>مسیر اشتراک (SUB PATH)</label>
+            <input type="text" id="subPath" />
+          </div>
+          <div>
+            <label>شناسه تایید (UUID)</label>
+            <div style="display:flex; gap:6px;">
+              <input type="text" id="uuid" />
+              <button class="btn btn-secondary" style="height:42px; padding:0 12px;" onclick="genUUID()">تولید</button>
+            </div>
+          </div>
+        </div>
+        <label>وب‌سایت استتار (FAKE WEB URL)</label>
+        <input type="text" id="fakeWeb" placeholder="https://example.com" />
+      </div>
+    </div>
+
+    <!-- تب ۳: مخزن آی‌پی‌ها -->
+    <div id="tab-ips" class="tab-content">
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">مخزن آی‌پی‌های چندگانه</span>
+          <button class="btn btn-secondary" onclick="openDailyProxyModal()">⚡ پروکسی‌های روزانه (ProxyIP-Daily)</button>
+        </div>
+        <div class="grid-2">
+          <div>
+            <label>آدرس‌های تمیز (CLEAN IPS - سطر به سطر)</label>
+            <textarea id="cleanIps" placeholder="openai.com&#10;104.16.0.1"></textarea>
+          </div>
+          <div>
+            <label>پروکسی‌های تی‌سی‌پی (PROXY IPS - سطر به سطر)</label>
+            <textarea id="proxyIps" placeholder="proxyip.cmliussss.net&#10;1.2.3.4:443"></textarea>
+          </div>
+        </div>
+
+        <!-- پنل پروکسی‌های روزانه گیت‌هاب (ضد خطای ۱۱۰۱) -->
+        <div id="dailyProxyPanel" style="display:none; margin-top:20px; border-top:2px dashed var(--border); padding-top:16px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
+            <div>
+              <span class="card-title" style="font-size:1rem;">پروکسی‌های تاییدشده NiREvil</span>
+              <span class="badge" style="background:var(--success); color:#fff;">بدون خطای 1101 (حذف Cloudflare)</span>
+            </div>
+            <button class="btn btn-secondary" style="padding:4px 10px; font-size:0.75rem;" onclick="closeDailyProxyModal()">بستن ✕</button>
+          </div>
+
+          <div style="display:grid; grid-template-columns: 2fr 1fr auto; gap:8px; margin-bottom:12px;" class="grid-2">
+            <input type="text" id="proxySearchInput" placeholder="جستجو بر اساس IP، کشور یا ISP..." oninput="filterDailyProxies()" style="margin:0;" />
+            <select id="proxyCountrySelect" onchange="filterDailyProxies()" style="margin:0;">
+              <option value="">همه کشورها</option>
+            </select>
+            <button class="btn" onclick="addRandomFilteredProxies(5)" title="افزودن ۵ آی‌پی تصادفی از این لیست">🎲 افزودن ۵ تای تصادفی</button>
+          </div>
+
+          <div id="proxyLoading" style="font-family:'JetBrains Mono'; font-size:0.8125rem; text-align:center; padding:15px;">در حال دریافت پروکسی‌ها از GitHub / jsDelivr...</div>
+          
+          <div id="proxyListContainer" style="max-height: 280px; overflow-y: auto; border: 2px solid var(--border); border-radius: var(--radius-sm); padding: 8px; background: var(--surface); display: none;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- تب ۴: نودها و دسته‌بندی -->
+    <div id="tab-nodes" class="tab-content">
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">نگاشت و دسته‌بندی نودها</span>
+          <button class="btn btn-secondary" onclick="autoPairNodes()">⚡ جفت‌سازی سریع</button>
+        </div>
+
+        <div class="node-form-grid">
+          <div>
+            <label>Clean IP</label>
+            <select id="mapCleanIp"></select>
+          </div>
+          <div>
+            <label>Proxy IP</label>
+            <select id="mapProxyIp"></select>
+          </div>
+          <div>
+            <label>نام نود</label>
+            <input type="text" id="mapName" placeholder="نود ۱" />
+          </div>
+          <div>
+            <label>گروه / اپراتور</label>
+            <input type="text" id="mapGroup" placeholder="ایرانسل" />
+          </div>
+          <div>
+            <button class="btn" onclick="addNodeMapping()">+ افزودن</button>
+          </div>
+        </div>
+
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>نام گره</th>
+                <th>گروه</th>
+                <th>Clean IP</th>
+                <th>Proxy IP</th>
+                <th>عملیات</th>
+              </tr>
+            </thead>
+            <tbody id="mappingTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- تب ۵: امنیت و تغییر رمز عبور -->
+    <div id="tab-security" class="tab-content">
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">تغییر رمز عبور مدیریت</span>
+          <span class="badge">SECURITY</span>
+        </div>
+        <label>رمز عبور جدید:</label>
+        <input type="password" id="newPassword" placeholder="رمز عبور قوی جدید..." />
+        <label>تکرار رمز عبور جدید:</label>
+        <input type="password" id="confirmPassword" placeholder="تکرار رمز عبور جدید..." />
+        <p style="font-size:0.75rem; color:var(--text-muted); margin-bottom:14px;">در صورت خالی گذاشتن این فیلد، رمز عبور پیشین بدون تغییر باقی می‌ماند.</p>
+      </div>
+    </div>
+
+    <!-- دکمه ذخیره در انتهای تب‌های قابل ویرایش -->
+    <div class="save-container" id="saveContainer">
+      <button class="btn btn-save" onclick="saveSettings()">ذخیره تمامی تغییرات 💾</button>
+    </div>
+  </div>
+
+  <script>
+    const apiPath = window.location.pathname.replace(/\/dash$/, '/api/settings');
+    let mappedNodes = [];
+
+    function switchTab(tabId, el) {
+      document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.dock-item').forEach(b => b.classList.remove('active'));
+      document.getElementById(tabId).classList.add('active');
+      el.classList.add('active');
+
+      // دکمه ذخیره در تب لینک‌ها مخفی می‌شود
+      const saveBtn = document.getElementById('saveContainer');
+      if (tabId === 'tab-subs') {
+        saveBtn.style.display = 'none';
+      } else {
+        saveBtn.style.display = 'block';
+      }
+    }
+
+    async function loadData() {
+      try {
+        const res = await fetch(apiPath);
+        if (res.status === 401) {
+          window.location.href = window.location.pathname.replace(/\/dash$/, '/login');
+          return;
+        }
+        const data = await res.json();
+
+        // نمایش هشدار رمز عبور پیش‌فرض
+        const alertEl = document.getElementById('defaultPassAlert');
+        if (data.رمز_پیش_فرض) {
+          alertEl.style.display = 'block';
+        } else {
+          alertEl.style.display = 'none';
+        }
+
+        document.getElementById('subPath').value = data.مسیر_اشتراک || '';
+        document.getElementById('fakeWeb').value = data.وب_سایت_استتار || '';
+        document.getElementById('uuid').value = data.شناسه_تایید || '';
+        document.getElementById('cleanIps').value = (data.آدرس_های_تمیز || []).join('\n');
+        document.getElementById('proxyIps').value = (data.آی_پی_های_پروکسی || []).join('\n');
+        mappedNodes = data.نگاشت_گره_ها || [];
+
+        renderSubLinks(data.لینک_های_اشتراک);
+        updateDropdowns();
+        renderMappingTable();
+      } catch (err) {
+        showToast('خطا در دریافت اطلاعات سرور.', 'error');
+      }
+    }
+
+    function goToSecurityTab() {
+      const securityTabBtn = document.querySelectorAll('.dock-item')[4];
+      switchTab('tab-security', securityTabBtn);
+      setTimeout(() => {
+        document.getElementById('newPassword').focus();
+      }, 150);
+    }
+
+    function renderSubLinks(links) {
+      if (!links) return;
+      const container = document.getElementById('subLinks');
+      container.innerHTML = `
+        <div class="sub-item">
+          <span><strong>V2RAY:</strong> ${links.وی۲ری}</span>
+          <button class="btn btn-secondary" onclick="copyText('${links.وی۲ری}')">کپی</button>
+        </div>
+        <div class="sub-item">
+          <span><strong>CLASH:</strong> ${links.کلش}</span>
+          <button class="btn btn-secondary" onclick="copyText('${links.کلش}')">کپی</button>
+        </div>
+        <div class="sub-item">
+          <span><strong>UNIVERSAL:</strong> ${links.عمومی}</span>
+          <button class="btn btn-secondary" onclick="copyText('${links.عمومی}')">کپی</button>
+        </div>
+      `;
+    }
+
+    let dailyProxies = [];
+    let filteredDailyProxies = [];
+
+    async function openDailyProxyModal() {
+      const panel = document.getElementById('dailyProxyPanel');
+      panel.style.display = 'block';
+      if (dailyProxies.length === 0) {
+        await loadDailyProxies();
+      }
+    }
+
+    function closeDailyProxyModal() {
+      document.getElementById('dailyProxyPanel').style.display = 'none';
+    }
+
+    async function loadDailyProxies() {
+      const loading = document.getElementById('proxyLoading');
+      const container = document.getElementById('proxyListContainer');
+      loading.style.display = 'block';
+      container.style.display = 'none';
+
+      const sources = [
+        "https://raw.githubusercontent.com/NiREvil/vless/refs/heads/main/sub/ProxyIP-Daily.md",
+        "https://cdn.jsdelivr.net/gh/NiREvil/vless@main/sub/ProxyIP-Daily.md"
+      ];
+
+      let markdown = null;
+      for (const url of sources) {
+        try {
+          const res = await fetch(url);
+          if (res.ok) {
+            markdown = await res.text();
+            break;
+          }
+        } catch (e) {
+          console.warn(`[ProxyIP-Daily] Failed to load from ${url}`);
+        }
+      }
+
+      if (!markdown) {
+        loading.textContent = '✕ خطا در بارگذاری فایل پروکسی‌ها از GitHub و jsDelivr.';
+        return;
+      }
+
+      parseDailyProxyMarkdown(markdown);
+      loading.style.display = 'none';
+      container.style.display = 'block';
+      populateCountryFilter();
+      filterDailyProxies();
+    }
+
+    function parseDailyProxyMarkdown(text) {
+      dailyProxies = [];
+      const lines = text.split('\n');
+      let currentCountry = "";
+
+      for (let line of lines) {
+        line = line.trim();
+
+        // تشخیص سرفصل کشورها (حذف سرفصل‌های ارائه‌دهندگان)
+        if (line.startsWith('## ')) {
+          if (!line.includes('<img')) {
+            currentCountry = line.replace('## ', '').replace(/\s*\(\d+\s*proxies\)/i, '').trim();
+          } else {
+            currentCountry = "";
+          }
+        } else if (line.includes('<pre><code>') && currentCountry) {
+          const parts = line.split('|').map(p => p.trim()).filter(Boolean);
+          if (parts.length >= 3) {
+            const ipMatch = parts[0].match(/<code>(.*?)<\/code>/);
+            const ip = ipMatch ? ipMatch[1].trim() : parts[0];
+            const isp = parts[1];
+            const location = parts[2];
+
+            // فیلتر ضد خطای 1101: کلودفلر اتصال Worker به آی‌پی پروکسی خود کلودفلر را مسدود می‌کند
+            const isCloudflare = isp.toLowerCase().includes("cloudflare") ||
+                                 location.toLowerCase().includes("cloudflare") ||
+                                 currentCountry.toLowerCase().includes("cloudflare");
+
+            if (!isCloudflare && ip) {
+              dailyProxies.push({ ip, isp, location, country: currentCountry });
+            }
+          }
+        }
+      }
+    }
+
+    function populateCountryFilter() {
+      const select = document.getElementById('proxyCountrySelect');
+      const countryCounts = {};
+
+      dailyProxies.forEach(p => {
+        countryCounts[p.country] = (countryCounts[p.country] || 0) + 1;
+      });
+
+      const options = ['<option value="">همه کشورها (' + dailyProxies.length + ')</option>'];
+      Object.keys(countryCounts).sort().forEach(c => {
+        options.push(`<option value="${c}">${c} (${countryCounts[c]})</option>`);
+      });
+      select.innerHTML = options.join('');
+    }
+
+    function filterDailyProxies() {
+      const search = document.getElementById('proxySearchInput').value.toLowerCase().trim();
+      const country = document.getElementById('proxyCountrySelect').value;
+
+      filteredDailyProxies = dailyProxies.filter(p => {
+        const matchesCountry = !country || p.country === country;
+        const matchesSearch = !search ||
+          p.ip.toLowerCase().includes(search) ||
+          p.isp.toLowerCase().includes(search) ||
+          p.location.toLowerCase().includes(search) ||
+          p.country.toLowerCase().includes(search);
+        return matchesCountry && matchesSearch;
+      });
+
+      renderDailyProxyList();
+    }
+
+    function renderDailyProxyList() {
+      const container = document.getElementById('proxyListContainer');
+      if (filteredDailyProxies.length === 0) {
+        container.innerHTML = '<div style="text-align:center; padding:15px; font-size:0.8125rem;">هیچ پروکسی مطابق با فیلتر یافت نشد.</div>';
+        return;
+      }
+
+      container.innerHTML = filteredDailyProxies.slice(0, 100).map(p => `
+        <div style="display:flex; justify-content:space-between; align-items:center; background:var(--card-bg); border:1.5px solid var(--border); border-radius:var(--radius-sm); padding:8px 10px; margin-bottom:6px; font-size:0.8125rem;">
+          <div>
+            <span style="font-family:'JetBrains Mono'; font-weight:700;">${p.ip}</span>
+            <span class="badge" style="margin-right:6px; font-size:0.6875rem;">${p.country}</span>
+            <span style="color:var(--text-muted); font-size:0.75rem; margin-right:6px;">${p.isp} (${p.location})</span>
+          </div>
+          <button class="btn" style="padding:4px 8px; font-size:0.75rem; min-height:28px;" onclick="addSingleProxy('${p.ip}')">+ افزودن</button>
+        </div>
+      `).join('');
+    }
+
+    function addSingleProxy(ip) {
+      const textarea = document.getElementById('proxyIps');
+      const currentList = textarea.value.split('\n').map(s => s.trim()).filter(Boolean);
+      if (!currentList.includes(ip)) {
+        currentList.push(ip);
+        textarea.value = currentList.join('\n');
+        updateDropdowns();
+        showToast(`✓ آی‌پی ${ip} به لیست پروکسی‌ها افزوده شد!`, 'success');
+      } else {
+        showToast(`آی‌پی ${ip} قبلاً در لیست وجود دارد.`, '');
+      }
+    }
+
+    function addRandomFilteredProxies(count) {
+      if (filteredDailyProxies.length === 0) return alert('هیچ پروکسی برای افزودن در فیلتر جاری وجود ندارد.');
+      const textarea = document.getElementById('proxyIps');
+      const currentList = textarea.value.split('\n').map(s => s.trim()).filter(Boolean);
+      const shuffled = [...filteredDailyProxies].sort(() => 0.5 - Math.random());
+      let added = 0;
+
+      for (const p of shuffled) {
+        if (!currentList.includes(p.ip)) {
+          currentList.push(p.ip);
+          added++;
+          if (added >= count) break;
+        }
+      }
+
+      textarea.value = currentList.join('\n');
+      updateDropdowns();
+      showToast(`✓ تعداد ${added} پروکسی تصادفی به لیست افزوده شد!`, 'success');
+    }
+
+    function updateDropdowns() {
+      const cleanList = document.getElementById('cleanIps').value.split('\n').map(s=>s.trim()).filter(Boolean);
+      const proxyList = document.getElementById('proxyIps').value.split('\n').map(s=>s.trim()).filter(Boolean);
+
+      const cleanSel = document.getElementById('mapCleanIp');
+      const proxySel = document.getElementById('mapProxyIp');
+
+      cleanSel.innerHTML = cleanList.map(ip => `<option value="${ip}">${ip}</option>`).join('');
+      proxySel.innerHTML = proxyList.map(ip => `<option value="${ip}">${ip}</option>`).join('');
+    }
+
+    document.getElementById('cleanIps').addEventListener('input', updateDropdowns);
+    document.getElementById('proxyIps').addEventListener('input', updateDropdowns);
+
+    function renderMappingTable() {
+      const tbody = document.getElementById('mappingTableBody');
+      if (mappedNodes.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:16px;">گره‌ای جفت‌سازی نشده است.</td></tr>`;
+        return;
+      }
+      tbody.innerHTML = mappedNodes.map((n, i) => `
+        <tr>
+          <td><strong>${n.name || '---'}</strong></td>
+          <td><span class="badge">${n.group || 'عمومی'}</span></td>
+          <td><code style="font-family:'JetBrains Mono';">${n.cleanIp}</code></td>
+          <td><code style="font-family:'JetBrains Mono';">${n.proxyIp || '---'}</code></td>
+          <td><button class="btn btn-danger" style="padding:4px 8px; font-size:0.75rem; min-height:30px;" onclick="deleteNode(${i})">حذف</button></td>
+        </tr>
+      `).join('');
+    }
+
+    function addNodeMapping() {
+      const cleanIp = document.getElementById('mapCleanIp').value;
+      const proxyIp = document.getElementById('mapProxyIp').value;
+      const name = document.getElementById('mapName').value || `نود-${mappedNodes.length + 1}`;
+      const group = document.getElementById('mapGroup').value || 'عمومی';
+
+      if (!cleanIp) return alert('آدرس تمیز نمی‌تواند خالی باشد.');
+
+      mappedNodes.push({ cleanIp, proxyIp, name, group });
+      document.getElementById('mapName').value = '';
+      renderMappingTable();
+    }
+
+    function autoPairNodes() {
+      const cleanList = document.getElementById('cleanIps').value.split('\n').map(s=>s.trim()).filter(Boolean);
+      const proxyList = document.getElementById('proxyIps').value.split('\n').map(s=>s.trim()).filter(Boolean);
+      if (cleanList.length === 0) return alert('ابتدا Clean IP وارد کنید.');
+
+      mappedNodes = cleanList.map((cleanIp, i) => ({
+        cleanIp,
+        proxyIp: proxyList[i % proxyList.length] || '',
+        name: `نود-${i + 1}`,
+        group: 'پیش‌فرض'
+      }));
+      renderMappingTable();
+    }
+
+    function deleteNode(i) {
+      mappedNodes.splice(i, 1);
+      renderMappingTable();
+    }
+
+    function genUUID() {
+      document.getElementById('uuid').value = crypto.randomUUID();
+    }
+
+    async function saveSettings() {
+      const newPass = document.getElementById('newPassword').value;
+      const confirmPass = document.getElementById('confirmPassword').value;
+
+      if (newPass !== "" && newPass !== confirmPass) {
+        showToast('✕ تکرار رمز عبور جدید همخوانی ندارد.', 'error');
+        return;
+      }
+
+      showToast('در حال ذخیره اطلاعات...', '');
+      const body = {
+        مسیر_اشتراک: document.getElementById('subPath').value.trim(),
+        وب_سایت_استتار: document.getElementById('fakeWeb').value.trim(),
+        شناسه_تایید: document.getElementById('uuid').value.trim(),
+        آدرس_های_تمیز: document.getElementById('cleanIps').value.split('\n').map(s=>s.trim()).filter(Boolean),
+        آی_پی_های_پروکسی: document.getElementById('proxyIps').value.split('\n').map(s=>s.trim()).filter(Boolean),
+        نگاشت_گره_ها: mappedNodes,
+        رمز_عبور_جدید: newPass.trim() !== "" ? newPass.trim() : undefined
+      };
+
+      try {
+        const res = await fetch(apiPath, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        });
+        if (res.ok) {
+          showToast('✓ تنظیمات با موفقیت ذخیره شد!', 'success');
+          document.getElementById('newPassword').value = '';
+          document.getElementById('confirmPassword').value = '';
+          loadData();
+        } else {
+          showToast('✕ خطا در ذخیره اطلاعات.', 'error');
+        }
+      } catch {
+        showToast('✕ خطا در برقراری ارتباط با سرور.', 'error');
+      }
+    }
+
+    function copyText(txt) {
+      navigator.clipboard.writeText(txt);
+      showToast('✓ لینک اشتراک کپی شد!', 'success');
+    }
+
+    function showToast(msg, type) {
+      const t = document.getElementById('toast');
+      t.innerText = msg;
+      t.className = `toast ${type}`;
+      t.style.display = 'block';
+      setTimeout(() => { t.style.display = 'none'; }, 4000);
+    }
+
+    function updateThemeBtn() {
+      const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+      document.getElementById('themeBtn').textContent = isDark ? '☀️ روشن' : '🌙 تاریک';
+    }
+    updateThemeBtn();
+
+    function toggleTheme() {
+      const current = document.documentElement.getAttribute('data-theme');
+      const target = current === 'dark' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', target);
+      localStorage.setItem('theme', target);
+      updateThemeBtn();
+    }
+
+    function logout() {
+      document.cookie = "admin_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+      localStorage.removeItem("admin_token");
+      window.location.href = window.location.pathname.replace(/\/dash$/, '/login');
+    }
+
+    loadData();
+  </script>
+</body>
+</html>
